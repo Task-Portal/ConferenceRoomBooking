@@ -8,12 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.30" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.30" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\ConferenceRoomBooking.Api\ConferenceRoomBooking.Api.csproj" />
     <ProjectReference Include="..\..\src\ConferenceRoomBooking.Domain\ConferenceRoomBooking.Domain.csproj" />
     <ProjectReference Include="..\..\src\ConferenceRoomBooking.Application\ConferenceRoomBooking.Application.csproj" />
     <ProjectReference Include="..\..\src\ConferenceRoomBooking.Infrastructure\ConferenceRoomBooking.Infrastructure.csproj" />

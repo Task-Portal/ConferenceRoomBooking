@@ -67,7 +67,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(CorsPolicyName, policy =>
     {
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+                             Array.Empty<string>();
         if (allowedOrigins.Length > 0)
         {
             policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
@@ -100,14 +101,18 @@ var app = builder.Build();
 // Apply any pending EF Core migrations, then seed the starting data from the requirements
 // (Зал А/B/C + services) if the database is empty. Both must run before the app starts
 // handling requests, since the very first query would otherwise fail with "relation does not exist".
-using (var scope = app.Services.CreateScope())
+// checking is using because if a program run for tests this will ruin sqlite database
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
+
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
 
     var roomRepository = scope.ServiceProvider.GetRequiredService<IRoomRepository>();
     await DataSeeder.SeedAsync(roomRepository);
 }
+
 
 // ---------- Middleware pipeline ----------
 app.UseMiddleware<ExceptionHandlingMiddleware>(); // First, so it wraps everything below.
@@ -116,10 +121,7 @@ app.UseIpRateLimiting();
 // Swagger is exposed in all environments by default since this is a small demo API;
 // gate it behind app.Environment.IsDevelopment() if the docs should be internal-only in production.
 app.UseSwagger();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Conference Room Booking API v1");
-});
+app.UseSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json", "Conference Room Booking API v1"); });
 
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicyName);
@@ -129,4 +131,6 @@ app.MapControllers();
 app.Run();
 
 // Exposed for WebApplicationFactory-based integration tests.
-public partial class Program { }
+public partial class Program
+{
+}
