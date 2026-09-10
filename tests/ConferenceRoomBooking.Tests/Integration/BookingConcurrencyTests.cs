@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using ConferenceRoomBooking.Application.DTOs;
-using ConferenceRoomBooking.Tests.Integration;
+
 using Xunit;
 
 namespace ConferenceRoomBooking.Tests.Integration;
@@ -12,12 +12,7 @@ public class BookingConcurrencyTests : IntegrationTestBase
     {
     }
 
-    private async Task<Guid> GetRoomIdAsync(string roomName)
-    {
-        var rooms = await Client.GetFromJsonAsync<List<RoomDto>>("/api/rooms");
-        var room = rooms!.Single(r => r.Name == roomName);
-        return room.Id;
-    }
+ 
 
     [Fact]
     public async Task CreateBooking_ManyConcurrentRequestsForSameSlot_OnlyOneSucceeds()

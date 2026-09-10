@@ -13,12 +13,7 @@ public class ReportsControllerTests : IntegrationTestBase
     {
     }
 
-    private async Task<Guid> GetRoomIdAsync(string roomName)
-    {
-        var rooms = await Client.GetFromJsonAsync<List<RoomDto>>("/api/rooms");
-        var room = rooms!.Single(r => r.Name == roomName);
-        return room.Id;
-    }
+
 
     private static string BuildRevenueReportUrl(DateTime periodStart, DateTime periodEnd)
     {

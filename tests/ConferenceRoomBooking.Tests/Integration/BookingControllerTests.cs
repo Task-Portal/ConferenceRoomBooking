@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using ConferenceRoomBooking.Application.DTOs;
 using ConferenceRoomBooking.Tests.Integration;
 using Xunit;
@@ -9,24 +8,15 @@ namespace ConferenceRoomBooking.Tests.Controllers;
 
 public class BookingsControllerTests : IntegrationTestBase
 {
-    // Matches the anonymous "problem" object ExceptionHandlingMiddleware writes as JSON
-    // (title, status, detail, traceId - all lowercase). PropertyNameCaseInsensitive below
-    // means this record's PascalCase properties still bind correctly regardless.
-    private sealed record ProblemResponse(string Title, int Status, string Detail, string TraceId);
+    
 
-    private static readonly JsonSerializerOptions CaseInsensitiveJson = new() { PropertyNameCaseInsensitive = true };
+    
 
     public BookingsControllerTests(CustomWebApplicationFactory factory) : base(factory)
     {
     }
 
-    /// <summary>Fetches the seeded room's id by name - RoomId is a Guid generated at seed time, so tests can't hardcode it.</summary>
-    private async Task<Guid> GetRoomIdAsync(string roomName)
-    {
-        var rooms = await Client.GetFromJsonAsync<List<RoomDto>>("/api/rooms");
-        var room = rooms!.Single(r => r.Name == roomName);
-        return room.Id;
-    }
+ 
 
     [Fact]
     public async Task CreateBooking_StandardHours_ReturnsCorrectTotalPrice()
@@ -38,7 +28,7 @@ public class BookingsControllerTests : IntegrationTestBase
             RoomId = roomId,
             StartTime = new DateTime(2030, 6, 2, 10, 0, 0), // 10:00-11:00 = standard hours, no discount/surcharge
             EndTime = new DateTime(2030, 6, 2, 11, 0, 0),
-            SelectedServices = new List<string> { "Проєктор" }, // 500 flat, per DataSeeder
+            SelectedServices = ["Проєктор"], // 500 flat, per DataSeeder
             CustomerName = "ТОВ Тест"
         };
 
@@ -110,7 +100,7 @@ public class BookingsControllerTests : IntegrationTestBase
             RoomId = await GetRoomIdAsync("Зал C"),
             StartTime = new DateTime(2027, 7, 2, 15, 0, 0),
             EndTime = new DateTime(2027, 7, 2, 17, 0, 0),
-            SelectedServices = new List<string> { "Звук" }
+            SelectedServices = ["Звук"]
         };
 
         var response = await Client.PostAsJsonAsync("api/bookings", request);

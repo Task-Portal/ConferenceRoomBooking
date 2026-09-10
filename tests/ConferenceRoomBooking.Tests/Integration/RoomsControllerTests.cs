@@ -1,10 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using ConferenceRoomBooking.Application.DTOs;
-using ConferenceRoomBooking.Tests.Integration;
 using Xunit;
 
-namespace ConferenceRoomBooking.Tests.Controllers;
+namespace ConferenceRoomBooking.Tests.Integration;
 
 public class RoomsControllerTests : IntegrationTestBase
 {
@@ -67,12 +66,12 @@ public class RoomsControllerTests : IntegrationTestBase
 
         var fetchedRoom = await getResponse.Content.ReadFromJsonAsync<RoomDto>();
         Assert.NotNull(fetchedRoom);
-        Assert.Equal("Зал D", fetchedRoom!.Name);
+        Assert.Equal("Зал D", fetchedRoom.Name);
         Assert.Equal(20, fetchedRoom.Capacity);
 
         // The real point of this test: without .Include(r => r.Services) in
         // PostgresRoomRepository, this collection would come back empty.
         Assert.Equal(2, fetchedRoom.Services.Count);
-        Assert.Contains(fetchedRoom.Services, s => s.Name == "Проєктор" && s.Price == 500m);
+        Assert.Contains(fetchedRoom.Services, s => s is { Name: "Проєктор", Price: 500m });
     }
 }

@@ -1,3 +1,6 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using ConferenceRoomBooking.Application.DTOs;
 using ConferenceRoomBooking.Tests.Integration;
 using Xunit;
 
@@ -12,10 +15,22 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
     protected readonly CustomWebApplicationFactory Factory;
     protected readonly HttpClient Client;
 
+
+    protected sealed record ProblemResponse(string Title, int Status, string Detail, string TraceId);
+
+    protected static readonly JsonSerializerOptions CaseInsensitiveJson = new() { PropertyNameCaseInsensitive = true };
     protected IntegrationTestBase(CustomWebApplicationFactory factory)
     {
         Factory = factory;
         Client = Factory.CreateClient();
+    }
+
+
+    protected async Task<Guid> GetRoomIdAsync(string roomName)
+    {
+        var rooms = await Client.GetFromJsonAsync<List<RoomDto>>("/api/rooms");
+        var room = rooms!.Single(r => r.Name == roomName);
+        return room.Id;
     }
 
     public async Task InitializeAsync()
@@ -25,8 +40,6 @@ public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFa
 
     public Task DisposeAsync()
     {
-        // Nothing to clean up per-test: the next InitializeAsync() call wipes the DB anyway,
-        // and the SQLite connection/host are torn down once by CustomWebApplicationFactory.Dispose().
         return Task.CompletedTask;
     }
 }
