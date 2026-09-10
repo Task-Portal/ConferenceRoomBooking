@@ -1,0 +1,52 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # Caches ~/.nuget/packages between runs, keyed on the exact set of .csproj files -
+      # if no .csproj changed since the last run, restore is nearly instant instead of
+      # re-downloading every package from NuGet.org.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore ConferenceRoomBooking.sln
+
+      - name: Build
+        run: dotnet build ConferenceRoomBooking.sln --no-restore --configuration Release
+
+      # No database service container needed here - the integration tests run entirely
+      # against an in-memory SQLite database (see CustomWebApplicationFactory), which is
+      # exactly why we set them up that way rather than requiring a real Postgres instance.
+      - name: Test
+        run: dotnet test ConferenceRoomBooking.sln --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
+
+      # Uploads the test results even if the Test step above failed, so you can download
+      # and inspect them from the Actions run page instead of only seeing pass/fail.
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/test-results.trx'
