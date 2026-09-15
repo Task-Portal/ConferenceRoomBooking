@@ -1,14 +1,20 @@
 using System.Reflection;
+using System.Text;
 using AspNetCoreRateLimit;
 using ConferenceRoomBooking.Api.Middleware;
 using ConferenceRoomBooking.Application.Interfaces;
 using ConferenceRoomBooking.Application.Services;
+using ConferenceRoomBooking.Domain.Entities;
 using ConferenceRoomBooking.Domain.Interfaces;
 using ConferenceRoomBooking.Infrastructure;
+using ConferenceRoomBooking.Infrastructure.Auth;
 using ConferenceRoomBooking.Infrastructure.Repositories;
 using ConferenceRoomBooking.Infrastructure.Seed;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,6 +65,26 @@ builder.Services.AddSwaggerGen(options =>
     {
         options.IncludeXmlComments(xmlPath);
     }
+
+    // Adds the "Authorize" button in Swagger UI - paste a JWT (just the token, "Bearer "
+    // is added for you) after logging in via POST /api/auth/login to call protected
+    // endpoints directly from the docs page.
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter the JWT token you got from POST /api/auth/login."
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        }
+    });
 });
 
 // ---------- CORS (adjust the allowed origins for your real front-end domains) ----------
@@ -81,6 +107,33 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ---------- Authentication (JWT) / Authorization ----------
+var jwtKey = builder.Configuration["Jwt:Key"]
+             ?? throw new InvalidOperationException("Jwt:Key must be configured (see appsettings.json / user-secrets).");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            // No clock skew tolerance beyond the default 5 minutes is configured here -
+            // the default is usually fine, but it's worth knowing it exists if tokens
+            // ever seem to expire "too early" across servers with slightly different clocks.
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+
+
+
 // ---------- Rate limiting (basic API hardening against abuse) ----------
 builder.Services.AddMemoryCache();
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
@@ -94,7 +147,11 @@ builder.Services.AddScoped<IBookingRepository, PostgresBookingRepository>();
 builder.Services.AddScoped<IPricingCalculator, PricingCalculator>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var app = builder.Build();
 
@@ -111,6 +168,20 @@ if (!app.Environment.IsEnvironment("Testing"))
 
     var roomRepository = scope.ServiceProvider.GetRequiredService<IRoomRepository>();
     await DataSeeder.SeedAsync(roomRepository);
+    
+    // Bootstraps the very first Admin account, since the public /api/auth/register
+    // endpoint can only ever create Customers (see AuthService.RegisterAsync) - without
+    // this, there would be no way to reach any [Authorize(Roles = "Admin")] endpoint at all.
+    var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+    await DataSeeder.SeedAdminAsync(
+        userRepository,
+        passwordHasher,
+        adminEmail: builder.Configuration["AdminSeed:Email"] ?? "admin@conferenceroombooking.local",
+        adminPassword: builder.Configuration["AdminSeed:Password"]
+                       ?? throw new InvalidOperationException("AdminSeed:Password must be configured."));
+    
+    
 }
 
 
@@ -125,6 +196,13 @@ app.UseSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json"
 
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicyName);
+
+// UseAuthentication MUST come before UseAuthorization - authentication figures out WHO
+// is making the request (reads/validates the JWT into a ClaimsPrincipal); authorization
+// then decides WHAT that identity is allowed to do ([Authorize], [Authorize(Roles=...)]).
+// Getting this order backwards means every [Authorize] check runs against an anonymous
+// user even with a perfectly valid token attached, silently producing 401s everywhere.
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

@@ -21,6 +21,7 @@ public class BookingsControllerTests : IntegrationTestBase
     [Fact]
     public async Task CreateBooking_StandardHours_ReturnsCorrectTotalPrice()
     {
+        AuthenticateAs(await RegisterNewCustomerAndGetTokenAsync());
         var roomId = await GetRoomIdAsync("Зал А"); // base rate 2000/hr from DataSeeder
 
         var request = new CreateBookingRequest
@@ -45,6 +46,7 @@ public class BookingsControllerTests : IntegrationTestBase
     [Fact]
     public async Task CreateBooking_OverlappingTimeSlot_ReturnsConflict()
     {
+        AuthenticateAs(await RegisterNewCustomerAndGetTokenAsync());
         var roomId = await GetRoomIdAsync("Зал B");
 
         var firstRequest = new CreateBookingRequest
@@ -78,6 +80,7 @@ public class BookingsControllerTests : IntegrationTestBase
     [Fact]
     public async Task CreateBooking_UnknownRoomId_ReturnsNotFound()
     {
+        AuthenticateAs(await RegisterNewCustomerAndGetTokenAsync());
         var request = new CreateBookingRequest
         {
             RoomId = Guid.NewGuid(),
@@ -92,6 +95,7 @@ public class BookingsControllerTests : IntegrationTestBase
     [Fact]
     public async Task CreateBooking_ServiceNotOfferedByRoom_ReturnsBadRequest()
     {
+        AuthenticateAs(await RegisterNewCustomerAndGetTokenAsync());
         // "Зал C" (from DataSeeder) does NOT offer "Звук" - only Проєктор and Wi-Fi.
         // Room.ResolveServices(...) throws InvalidOperationException for an unknown service name,
         // which ExceptionHandlingMiddleware maps to 400 BadRequest with title "Invalid request".
@@ -114,6 +118,7 @@ public class BookingsControllerTests : IntegrationTestBase
     [Fact]
     public async Task CancelBooking_ThenRebookSameSlot_Succeeds()
     {
+        AuthenticateAs(await RegisterNewCustomerAndGetTokenAsync());
         var roomId = await GetRoomIdAsync("Зал C");
         var request = new CreateBookingRequest
         {

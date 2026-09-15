@@ -16,7 +16,7 @@ public class ReportsControllerTests : IntegrationTestBase
 
 
     private static string BuildRevenueReportUrl(DateTime periodStart, DateTime periodEnd)
-    {
+    {   
         // Matches ReportsController's actual route: [Route("api/reports")] + [HttpGet("revenue")]
         // = "api/reports/revenue". A typo'd/renamed path here silently turns every assertion
         // below into "did we get a 404" instead of testing the report logic at all.
@@ -30,6 +30,7 @@ public class ReportsControllerTests : IntegrationTestBase
     [Fact]
     public async Task GetRevenueReport_AggregatesAcrossRooms()
     {
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var roomAId = await GetRoomIdAsync("Зал А"); // base rate 2000/hr
         var roomBId = await GetRoomIdAsync("Зал B"); // base rate 3500/hr
 
@@ -46,7 +47,7 @@ public class ReportsControllerTests : IntegrationTestBase
         Assert.NotNull(singleBooking);
         Assert.Equal(2000m, singleBooking.RoomRentalCost);
         Assert.Equal(500m, singleBooking.ServicesCost);
-
+        
         var requestB = new CreateBookingRequest
         {
             RoomId = roomBId,
@@ -77,7 +78,7 @@ public class ReportsControllerTests : IntegrationTestBase
 
     [Fact]
     public async Task GetRevenueReport_ExcludesCancelledBookings()
-    {
+    {   
         var roomId = await GetRoomIdAsync("Зал C");
 
         var request = new CreateBookingRequest
@@ -87,11 +88,13 @@ public class ReportsControllerTests : IntegrationTestBase
             EndTime = new DateTime(2027, 6, 2, 13, 0, 0)
         };
 
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var response = await Client.PostAsJsonAsync("api/bookings", request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var createdBooking = await response.Content.ReadFromJsonAsync<BookingDto>();
         Assert.NotNull(createdBooking);
 
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var cancelResponse = await Client.PostAsync($"api/bookings/{createdBooking.Id}/cancel", null);
         Assert.Equal(HttpStatusCode.NoContent, cancelResponse.StatusCode);
 
@@ -108,6 +111,7 @@ public class ReportsControllerTests : IntegrationTestBase
     [Fact]
     public async Task GetServicePopularityReport_RanksMostBookedServiceFirst()
     {
+        
         var roomAId = await GetRoomIdAsync("Зал А");
 
         var requestA = new CreateBookingRequest
@@ -133,16 +137,16 @@ public class ReportsControllerTests : IntegrationTestBase
             EndTime = new DateTime(2027, 7, 2, 11, 0, 0),
             SelectedServices = new List<string> { "Проєктор" }
         };
-
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var responseA = await Client.PostAsJsonAsync("api/bookings", requestA);
         Assert.Equal(HttpStatusCode.Created, responseA.StatusCode);
-
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var responseB = await Client.PostAsJsonAsync("api/bookings", requestB);
         Assert.Equal(HttpStatusCode.Created, responseB.StatusCode);
-
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var responseC = await Client.PostAsJsonAsync("api/bookings", requestC);
         Assert.Equal(HttpStatusCode.Created, responseC.StatusCode);
-
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var popularityResponse = await Client.GetAsync("api/reports/service-popularity");
         Assert.Equal(HttpStatusCode.OK, popularityResponse.StatusCode);
 

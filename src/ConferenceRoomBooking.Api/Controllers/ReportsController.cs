@@ -1,10 +1,12 @@
 using ConferenceRoomBooking.Application.DTOs;
 using ConferenceRoomBooking.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ConferenceRoomBooking.Api.Controllers;
 
 /// <summary>Business analytics: revenue, room utilization, and service popularity.</summary>
+[Authorize(Roles = "Admin")]
 [ApiController]
 [Route("api/reports")]
 [Produces("application/json")]

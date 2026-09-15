@@ -1,6 +1,7 @@
 using ConferenceRoomBooking.Application.DTOs;
 using ConferenceRoomBooking.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ConferenceRoomBooking.Api.Controllers;
 
@@ -20,6 +21,7 @@ public sealed class RoomsController : ControllerBase
     /// <summary>Creates a new conference room.</summary>
     /// <response code="201">Room created successfully.</response>
     /// <response code="400">Validation failed.</response>
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(RoomDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -54,6 +56,7 @@ public sealed class RoomsController : ControllerBase
     /// </summary>
     /// <response code="200">Room updated successfully.</response>
     /// <response code="404">Room not found.</response>
+    [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}")]
     [ProducesResponseType(typeof(RoomDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -66,6 +69,7 @@ public sealed class RoomsController : ControllerBase
     /// <summary>Deletes (soft-deletes) a conference room. Past bookings for the room are preserved for reporting.</summary>
     /// <response code="204">Room deleted successfully.</response>
     /// <response code="404">Room not found.</response>
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

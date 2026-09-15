@@ -1,7 +1,9 @@
+using ConferenceRoomBooking.Domain.Entities;
 using ConferenceRoomBooking.Domain.Interfaces;
 using ConferenceRoomBooking.Infrastructure;
 using ConferenceRoomBooking.Infrastructure.Seed;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +35,13 @@ namespace ConferenceRoomBooking.Tests.Integration;
 /// </summary>
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    // Fixed, well-known credentials for the one Admin account tests can log in as.
+    // Seeded fresh into every test's database by ResetDatabaseAsync below, via the exact
+    // same DataSeeder.SeedAdminAsync the real app uses on startup - not a separate,
+    // test-only code path, so a bug in seeding would show up here too.
+    public const string AdminEmail = "admin@test.local";
+    public const string AdminPassword = "TestAdmin123!";
+
     private readonly string _connectionString;
 
     // Destroyed the instant its last connection closes, like any shared-cache :memory:
@@ -114,11 +123,19 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Users has no FK relationship to the other tables, so its position in this list
+        // doesn't matter for constraint order - it's here so no test-created customer
+        // account (see IntegrationTestBase) leaks into the next test either.
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Bookings");
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Services");
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Rooms");
+        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Users");
 
         var roomRepository = scope.ServiceProvider.GetRequiredService<IRoomRepository>();
         await DataSeeder.SeedAsync(roomRepository);
+
+        var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+        await DataSeeder.SeedAdminAsync(userRepository, passwordHasher, AdminEmail, AdminPassword);
     }
 }

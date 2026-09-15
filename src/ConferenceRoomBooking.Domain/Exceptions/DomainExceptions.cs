@@ -27,3 +27,19 @@ public sealed class InvalidBookingRequestException : DomainException
 {
     public InvalidBookingRequestException(string message) : base(message) { }
 }
+
+
+public sealed class EmailAlreadyRegisteredException : DomainException
+{
+    public EmailAlreadyRegisteredException(string email) : base($"Email '{email}' is already registered.") { }
+}
+
+/// <summary>
+/// Deliberately the SAME exception (and the same message) for "no account with this email"
+/// and "account exists but the password is wrong". Distinguishing them in the response lets
+/// an attacker enumerate which emails are registered - see AuthService for where this is thrown.
+/// </summary>
+public sealed class InvalidCredentialsException : DomainException
+{
+    public InvalidCredentialsException() : base("Invalid email or password.") { }
+}

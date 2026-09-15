@@ -1,5 +1,6 @@
 using ConferenceRoomBooking.Domain.Entities;
 using ConferenceRoomBooking.Domain.Interfaces;
+using Microsoft.AspNetCore.Identity;
 
 namespace ConferenceRoomBooking.Infrastructure.Seed;
 
@@ -30,5 +31,35 @@ public static class DataSeeder
         await roomRepository.AddAsync(roomA, cancellationToken);
         await roomRepository.AddAsync(roomB, cancellationToken);
         await roomRepository.AddAsync(roomC, cancellationToken);
+    }
+    
+    /// <summary>
+    /// Bootstraps the one and only way an Admin account can come into existence -
+    /// AuthService.RegisterAsync (the public endpoint) only ever creates Customers.
+    /// </summary>
+    public static async Task SeedAdminAsync(
+        IUserRepository userRepository,
+        IPasswordHasher<User> passwordHasher,
+        string adminEmail,
+        string adminPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var adminEmailExists = await userRepository.GetByEmailAsync(adminEmail, cancellationToken);
+
+        if (adminEmailExists != null)
+        {
+            return;
+        }
+   
+        
+        var hashedPassword =  passwordHasher.HashPassword(null!, adminPassword);
+
+        //  this is the
+        // ONLY place in the entire codebase that should ever pass UserRole.Admin to the
+        // User constructor. AuthService.RegisterAsync deliberately never does.
+        var user = new User(adminEmail, hashedPassword, UserRole.Admin);
+
+      
+        await userRepository.AddAsync(user, cancellationToken);
     }
 }

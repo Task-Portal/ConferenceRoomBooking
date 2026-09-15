@@ -38,6 +38,7 @@ public class RoomsControllerTests : IntegrationTestBase
     [Fact]
     public async Task CreateRoom_ThenGetById_ReturnsTheCreatedRoom()
     {
+        AuthenticateAs(await LoginAsAdminAndGetTokenAsync());
         var newRoom = new CreateRoomRequest
         {
             Name = "Зал D",

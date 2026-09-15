@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Service> Services => Set<Service>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +79,18 @@ public class AppDbContext : DbContext
             builder.Property(s => s.Price).HasColumnType("decimal(18,2)");
             builder.HasOne<Room>().WithMany(r => r.Services).HasForeignKey(s => s.RoomId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        modelBuilder.Entity<User>(builder =>
+        {
+            builder.HasKey(u => u.Id);
+            builder.Property(u => u.Id).ValueGeneratedNever();
+            builder.Property(u => u.Email).IsRequired().HasMaxLength(320); // 320 = the actual max valid email length per RFC 5321
+            builder.Property(u => u.PasswordHash).IsRequired();
+            builder.Property(u => u.Role).IsRequired();
+            builder.HasIndex(u => u.Email).IsUnique();
+
+           
         });
     }
 }

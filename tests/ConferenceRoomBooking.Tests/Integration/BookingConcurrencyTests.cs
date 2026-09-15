@@ -17,6 +17,7 @@ public class BookingConcurrencyTests : IntegrationTestBase
     [Fact]
     public async Task CreateBooking_ManyConcurrentRequestsForSameSlot_OnlyOneSucceeds()
     {
+        AuthenticateAs(await RegisterNewCustomerAndGetTokenAsync());
         var roomId = await GetRoomIdAsync("Зал А");
         var request = new CreateBookingRequest
         {

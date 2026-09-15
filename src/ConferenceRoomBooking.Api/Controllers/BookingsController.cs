@@ -1,5 +1,6 @@
 using ConferenceRoomBooking.Application.DTOs;
 using ConferenceRoomBooking.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ConferenceRoomBooking.Api.Controllers;
@@ -25,6 +26,7 @@ public sealed class BookingsController : ControllerBase
     /// <response code="400">Invalid request (e.g. unknown service, bad time range).</response>
     /// <response code="404">Room not found.</response>
     /// <response code="409">Room is already booked for that time window.</response>
+    [Authorize]
     [HttpPost]
     [ProducesResponseType(typeof(BookingDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -37,6 +39,7 @@ public sealed class BookingsController : ControllerBase
     }
 
     /// <summary>Gets a single booking, including its price breakdown, by id.</summary>
+    [Authorize(Roles = "Admin")]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(BookingDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -47,6 +50,7 @@ public sealed class BookingsController : ControllerBase
     }
 
     /// <summary>Lists all bookings (confirmed and cancelled).</summary>
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<BookingDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyCollection<BookingDto>>> GetAllBookings(CancellationToken cancellationToken)
@@ -58,6 +62,7 @@ public sealed class BookingsController : ControllerBase
     /// <summary>Cancels an existing booking, freeing up the room for that time slot.</summary>
     /// <response code="204">Booking cancelled.</response>
     /// <response code="404">Booking not found.</response>
+    [Authorize]
     [HttpPost("{id:guid}/cancel")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
