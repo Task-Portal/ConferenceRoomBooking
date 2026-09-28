@@ -40,7 +40,7 @@ public sealed class AuthService : IAuthService
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
-    {
+    {   
         var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
         if (user is null)
         {
