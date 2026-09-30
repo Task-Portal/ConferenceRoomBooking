@@ -69,11 +69,12 @@ public class AuthControllerTests : IntegrationTestBase
     public async Task Login_AfterRegister_WorksRegardlessOfEmailCase()
     {
       
-        var request = new RegisterRequest { Email = "login.case@test.local", Password = TestPassword };
-        var result = await Client.PostAsJsonAsync("api/auth/register", request);
+        var requestRegister = new RegisterRequest { Email = "login.case@test.local", Password = TestPassword };
+        var result = await Client.PostAsJsonAsync("api/auth/register", requestRegister);
         Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-
-        var loginResponse = await Client.PostAsJsonAsync("api/auth/login", request);
+        
+        var requestLogin = new LoginRequest { Email = "login.case@test.local", Password = TestPassword };
+        var loginResponse = await Client.PostAsJsonAsync("api/auth/login", requestLogin);
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
         var result1 = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         Assert.NotNull(result1);
@@ -84,7 +85,7 @@ public class AuthControllerTests : IntegrationTestBase
     public async Task Login_AsSeededAdmin_ReturnsAdminRole()
     {
         
-        var request = new RegisterRequest
+        var request = new LoginRequest
             { Email = CustomWebApplicationFactory.AdminEmail, Password = CustomWebApplicationFactory.AdminPassword };
         var response = await Client.PostAsJsonAsync("api/auth/login", request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -97,9 +98,12 @@ public class AuthControllerTests : IntegrationTestBase
     {
        
         var request = new  RegisterRequest { Email = "wrongpass@test.local", Password = TestPassword };
-        var result = await Client.PostAsJsonAsync("api/auth/login", request);
+        var register = await Client.PostAsJsonAsync("api/auth/register", request);
+        Assert.Equal(HttpStatusCode.OK, register.StatusCode);
+        
+        var result = await Client.PostAsJsonAsync("api/auth/login", new LoginRequest{Email = "wrongpass@test.local", Password = "CorrectHorse1234345!" });
         Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
-        var body = await result.Content.ReadFromJsonAsync<ProblemResponse>();
+        var body = await result.Content.ReadFromJsonAsync<ProblemResponse>(CaseInsensitiveJson);
         Assert.Equal("Unauthorized", body?.Title);
         
     }
@@ -108,10 +112,10 @@ public class AuthControllerTests : IntegrationTestBase
     public async Task Login_UnknownEmail_Returns401()
     {
        
-        var request = new RegisterRequest { Email = "new_email@com.ua", Password = TestPassword };
+        var request = new LoginRequest { Email = "new_email@com.ua", Password = TestPassword };
         var result = await Client.PostAsJsonAsync("api/auth/login", request);
         Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
-        var body = await result.Content.ReadFromJsonAsync<ProblemResponse>();
+        var body = await result.Content.ReadFromJsonAsync<ProblemResponse>(CaseInsensitiveJson);
         Assert.Equal("Unauthorized", body?.Title);
     }
 
@@ -119,13 +123,13 @@ public class AuthControllerTests : IntegrationTestBase
     public async Task Login_WrongPasswordAndUnknownEmail_AreIndistinguishable()
     {
 
-        var request = new RegisterRequest { Email = CustomWebApplicationFactory.AdminEmail, Password = TestPassword };
+        var request = new LoginRequest { Email = CustomWebApplicationFactory.AdminEmail, Password = TestPassword };
         var result = await Client.PostAsJsonAsync("api/auth/login", request);
-        var body = await result.Content.ReadFromJsonAsync<ProblemResponse>();
+        var body = await result.Content.ReadFromJsonAsync<ProblemResponse>(CaseInsensitiveJson);
         
-        var request1 = new RegisterRequest{Email = "new_email@com.ua", Password = TestPassword};
+        var request1 = new LoginRequest{Email = "new_email@com.ua", Password = TestPassword};
         var result1 = await Client.PostAsJsonAsync("api/auth/login", request1);
-        var body1 = await result1.Content.ReadFromJsonAsync<ProblemResponse>();
+        var body1 = await result1.Content.ReadFromJsonAsync<ProblemResponse>(CaseInsensitiveJson);
         Assert.NotNull(body);
         Assert.NotNull(body1);
         Assert.Equal(result.StatusCode, result1.StatusCode);
