@@ -43,3 +43,8 @@ public sealed class InvalidCredentialsException : DomainException
 {
     public InvalidCredentialsException() : base("Invalid email or password.") { }
 }
+
+public sealed class ForbiddenException : DomainException
+{
+    public ForbiddenException(string message) : base(message) { }
+}

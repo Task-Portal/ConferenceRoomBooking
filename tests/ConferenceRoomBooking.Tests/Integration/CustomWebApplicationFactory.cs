@@ -127,9 +127,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // doesn't matter for constraint order - it's here so no test-created customer
         // account (see IntegrationTestBase) leaks into the next test either.
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Bookings");
+        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Users");
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Services");
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Rooms");
-        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Users");
 
         var roomRepository = scope.ServiceProvider.GetRequiredService<IRoomRepository>();
         await DataSeeder.SeedAsync(roomRepository);

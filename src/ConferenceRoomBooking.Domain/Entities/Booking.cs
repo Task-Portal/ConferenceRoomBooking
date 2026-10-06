@@ -15,6 +15,8 @@ public class Booking
 {
     public Guid Id { get; private set; }
     public Guid RoomId { get; private set; }
+    
+    public Guid UserId { get; private set; }
     public DateTime StartTime { get; private set; }
     public DateTime EndTime { get; private set; }
     public IReadOnlyCollection<string> SelectedServiceNames { get; private set; } = Array.Empty<string>();
@@ -23,6 +25,7 @@ public class Booking
     public string? CustomerName { get; private set; }
     public BookingStatus Status { get; private set; } = BookingStatus.Confirmed;
     public DateTime CreatedAtUtc { get; private set; }
+    
 
     private Booking() { }
 
@@ -32,6 +35,7 @@ public class Booking
         DateTime endTime,
         IEnumerable<string> selectedServiceNames,
         decimal totalPrice,
+        Guid userId,
         string? customerName = null)
     {
         if (endTime <= startTime)
@@ -46,6 +50,7 @@ public class Booking
 
         Id = Guid.NewGuid();
         RoomId = roomId;
+        UserId = userId;
         StartTime = startTime;
         EndTime = endTime;
         SelectedServiceNames = selectedServiceNames.ToArray();

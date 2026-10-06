@@ -41,6 +41,7 @@ public sealed class ExceptionHandlingMiddleware
             RoomNotAvailableException => (HttpStatusCode.Conflict, "Room not available"),
             EmailAlreadyRegisteredException=>(HttpStatusCode.Conflict, "Email already registered"),
             InvalidCredentialsException => (HttpStatusCode.Unauthorized, "Unauthorized"),
+            ForbiddenException =>(HttpStatusCode.Forbidden, "Forbidden"),
             InvalidBookingRequestException or ArgumentException => (HttpStatusCode.BadRequest, "Invalid request"),
             InvalidOperationException => (HttpStatusCode.BadRequest, "Invalid request"),
             _ => (HttpStatusCode.InternalServerError, "Unexpected error")

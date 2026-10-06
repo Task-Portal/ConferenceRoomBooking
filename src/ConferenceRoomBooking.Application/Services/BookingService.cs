@@ -12,17 +12,19 @@ public sealed class BookingService : IBookingService
     private readonly IRoomRepository _roomRepository;
     private readonly IBookingRepository _bookingRepository;
     private readonly IPricingCalculator _pricingCalculator;
+    private readonly ICurrentUserService _currentUserService;
 
     // Guards the "check availability, then create" sequence per room so two concurrent
     // requests for the same slot cannot both pass the overlap check and double-book a room.
     // Keyed per-room (not a single global lock) so bookings for different rooms never block each other.
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> RoomLocks = new();
 
-    public BookingService(IRoomRepository roomRepository, IBookingRepository bookingRepository, IPricingCalculator pricingCalculator)
+    public BookingService(IRoomRepository roomRepository, IBookingRepository bookingRepository, IPricingCalculator pricingCalculator,  ICurrentUserService currentUserService)
     {
         _roomRepository = roomRepository;
         _bookingRepository = bookingRepository;
         _pricingCalculator = pricingCalculator;
+        _currentUserService =  currentUserService;
     }
 
     public async Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken cancellationToken = default)
@@ -55,6 +57,7 @@ public sealed class BookingService : IBookingService
                 request.EndTime,
                 request.SelectedServices,
                 pricing.TotalPrice,
+                _currentUserService.UserId,
                 request.CustomerName);
 
             await _bookingRepository.AddAsync(booking, cancellationToken);
@@ -107,9 +110,14 @@ public sealed class BookingService : IBookingService
 
     public async Task CancelBookingAsync(Guid bookingId, CancellationToken cancellationToken = default)
     {
+        
+        
         var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
                       ?? throw new BookingNotFoundException(bookingId);
-
+        if (booking.UserId != _currentUserService.UserId && !_currentUserService.IsAdmin )
+        {
+            throw new ForbiddenException("You can only cancel your own bookings.");
+        }
         booking.Cancel();
         await _bookingRepository.UpdateAsync(booking, cancellationToken);
     }

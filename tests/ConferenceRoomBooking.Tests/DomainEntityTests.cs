@@ -31,7 +31,7 @@ public class DomainEntityTests
             new DateTime(2024, 9, 1, 10, 0, 0),
             new DateTime(2024, 9, 1, 12, 0, 0),
             Array.Empty<string>(),
-            2000m);
+            2000m, Guid.NewGuid());
 
         Assert.True(booking.OverlapsWith(new DateTime(2024, 9, 1, 11, 0, 0), new DateTime(2024, 9, 1, 13, 0, 0)));
         Assert.False(booking.OverlapsWith(new DateTime(2024, 9, 1, 12, 0, 0), new DateTime(2024, 9, 1, 13, 0, 0)));
@@ -45,7 +45,7 @@ public class DomainEntityTests
             new DateTime(2024, 9, 1, 10, 0, 0),
             new DateTime(2024, 9, 1, 12, 0, 0),
             Array.Empty<string>(),
-            2000m);
+            2000m, Guid.NewGuid());
 
         booking.Cancel();
 

@@ -41,6 +41,8 @@ public class AppDbContext : DbContext
             builder.Property(b => b.EndTime).IsRequired();
             builder.Property(b => b.TotalPrice).HasColumnType("decimal(18,2)");
             builder.Property(b => b.CustomerName).HasMaxLength(200);
+            builder.Property(b => b.UserId).IsRequired();
+            builder.HasOne<User>().WithMany().HasForeignKey(b => b.UserId).OnDelete(DeleteBehavior.Restrict);
 
             // Formal FK to Room: the database itself now rejects a booking pointing at a
             // RoomId that doesn't exist. DeleteBehavior.Restrict (not Cascade) is deliberate:

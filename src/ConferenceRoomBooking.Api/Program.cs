@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using AspNetCoreRateLimit;
+using ConferenceRoomBooking.Api.Auth;
 using ConferenceRoomBooking.Api.Middleware;
 using ConferenceRoomBooking.Application.Interfaces;
 using ConferenceRoomBooking.Application.Services;
@@ -81,7 +82,8 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            new OpenApiSecurityScheme
+                { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
             Array.Empty<string>()
         }
     });
@@ -109,7 +111,8 @@ builder.Services.AddCors(options =>
 
 // ---------- Authentication (JWT) / Authorization ----------
 var jwtKey = builder.Configuration["Jwt:Key"]
-             ?? throw new InvalidOperationException("Jwt:Key must be configured (see appsettings.json / user-secrets).");
+             ?? throw new InvalidOperationException(
+                 "Jwt:Key must be configured (see appsettings.json / user-secrets).");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -127,11 +130,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // the default is usually fine, but it's worth knowing it exists if tokens
             // ever seem to expire "too early" across servers with slightly different clocks.
         };
+        // // Without this, the JWT bearer handler silently rewrites the "sub" claim to
+        // // ClaimTypes.NameIdentifier on the way in - CurrentUserService reads
+        // // JwtRegisteredClaimNames.Sub directly, so without this line it would always get null
+        // // and every protected endpoint would throw InvalidOperationException on UserId access.
+        options.MapInboundClaims = false;
     });
 
 builder.Services.AddAuthorization();
-
-
 
 
 // ---------- Rate limiting (basic API hardening against abuse) ----------
@@ -152,6 +158,8 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var app = builder.Build();
 
@@ -168,7 +176,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 
     var roomRepository = scope.ServiceProvider.GetRequiredService<IRoomRepository>();
     await DataSeeder.SeedAsync(roomRepository);
-    
+
     // Bootstraps the very first Admin account, since the public /api/auth/register
     // endpoint can only ever create Customers (see AuthService.RegisterAsync) - without
     // this, there would be no way to reach any [Authorize(Roles = "Admin")] endpoint at all.
@@ -180,8 +188,6 @@ if (!app.Environment.IsEnvironment("Testing"))
         adminEmail: builder.Configuration["AdminSeed:Email"] ?? "admin@conferenceroombooking.local",
         adminPassword: builder.Configuration["AdminSeed:Password"]
                        ?? throw new InvalidOperationException("AdminSeed:Password must be configured."));
-    
-    
 }
 
 
